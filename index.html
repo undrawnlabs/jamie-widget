@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Jamie AI Receptionist</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+--primary: #4f46e5;
+--primary-light: #6366f1;
+--text: #1f2937;
+--text-light: #6b7280;
+--bg: #ffffff;
+--border: rgba(209, 213, 219, 0.8);
+--shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+--transition: all 0.2s ease;
+}
+
+```
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Enhanced Launcher button */
+#launcher {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  padding: 0 20px 0 16px;
+  height: 60px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: float 3s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.launcher-content {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.launcher-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+}
+
+.launcher-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.launcher-text {
+  margin-right: 10px;
+  font-weight: 500;
+}
+
+.launcher-arrow {
+  transition: transform 0.2s ease;
+}
+
+#launcher:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+}
+
+#launcher:hover .launcher-arrow {
+  transform: translateX(3px);
+}
+
+#launcher:active {
+  transform: translateY(0);
+}
+
+.pulse-ring {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--primary-light);
+  border-radius: 30px;
+  z-index: 1;
+  opacity: 0;
+  animation: pulse-ring 8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.7; }
+  4% { transform: scale(1.05); opacity: 0; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.02); }
+}
+
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  background: #10B981;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  display: none;
+}
+
+#launcher.has-notification .notification-badge {
+  display: block;
+  animation: pulse 2s infinite;
+}
+
+.tooltip {
+  position: absolute;
+  right: 75px;
+  white-space: nowrap;
+  background: #1f2937;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  transform: translateX(15px) scale(0.95);
+  pointer-events: none;
+  z-index: 10000;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-left-color: #1f2937;
+  border-right: 0;
+}
+
+#launcher:hover .tooltip {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+/* Rest of your existing styles */
+#chatbox {
+  position: fixed;
+  bottom: 95px;
+  right: 25px;
+  width: 380px;
+  max-width: calc(100vw - 50px);
+  height: 580px;
+  background: var(--bg);
+  border-radius: 12px;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+#chatbox.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#header {
+  padding: 16px 20px;
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#header .title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+}
+
+#header .status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  position: relative;
+}
+
+.status-indicator::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  70% { transform: scale(2.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+#closeBtn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+#closeBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+#messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background: #f9fafb;
+  scroll-behavior: smooth;
+}
+
+.msg {
+  margin: 8px 0;
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  line-height: 1.5;
+  font-size: 14px;
+  position: relative;
+  transition: var(--transition);
+  animation: slideIn 0.3s ease-out;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.msg strong {
+  font-weight: 600;
+}
+
+.msg ul, .msg ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.msg li {
+  margin-bottom: 6px;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bot {
+  background: white;
+  color: var(--text);
+  border-top-left-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+.user {
+  background: var(--primary);
+  color: white;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+.typing {
+  display: flex;
+  gap: 4px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 12px;
+  width: fit-content;
+  border: 1px solid #e5e7eb;
+  margin-top: 8px;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--primary-light);
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.typing-dot:nth-child(1) { animation: typing 1s infinite; }
+.typing-dot:nth-child(2) { animation: typing 1s 0.2s infinite; }
+.typing-dot:nth-child(3) { animation: typing 1s 0.4s infinite; }
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+#inputArea {
+  display: flex;
+  padding: 12px;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  position: relative;
+}
+
+#textInput {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  transition: var(--transition);
+  background: #f9fafb;
+}
+
+#textInput:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+#sendBtn {
+  margin-left: 8px;
+  padding: 0 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#sendBtn:hover {
+  background: var(--primary-light);
+}
+
+#sendBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+#sendBtn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  #chatbox {
+    width: calc(100% - 30px);
+    height: 70vh;
+    bottom: 20px;
+    right: 15px;
+  }
+
+  #launcher {
+    bottom: 20px;
+    right: 20px;
+    padding: 0;
+    width: 56px;
+    justify-content: center;
+  }
+
+  .launcher-text,
+  .launcher-arrow {
+    display: none;
+  }
+
+  .launcher-icon {
+    margin-right: 0;
+  }
+
+  .tooltip {
+    display: none;
+  }
+}
+
+```
+
+</style>
+</head>
+
+<body>
+<button id="launcher" aria-label="Chat with us" type="button">
+<div class="launcher-content">
+<span class="tooltip">Need help? Chat with us! 👋</span>
+<div class="launcher-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+<path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5l-5 5v-5z"/>
+</svg>
+</div>
+<span class="launcher-text">Chat with us</span>
+<span class="launcher-arrow">→</span>
+<span class="notification-badge"></span>
+</div>
+<div class="pulse-ring"></div>
+</button>
+
+<div id="chatbox">
+<div id="header">
+<div class="title">
+<span>Jamie • AI Receptionist</span>
+<div class="status">
+<div class="status-indicator"></div>
+<span>Online</span>
+</div>
+</div>
+<button id="closeBtn" aria-label="Close chat">✕</button>
+</div>
+
+```
+<div id="messages">
+  <!-- Messages will be added here by JavaScript -->
+</div>
+
+<div id="inputArea">
+  <input
+    type="text"
+    id="textInput"
+    placeholder="Type your message here..."
+    autocomplete="off"
+    aria-label="Type your message"
+  />
+  <button id="sendBtn" aria-label="Send message">
+    <svg xmlns="<http://www.w3.org/2000/svg>" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+    </svg>
+  </button>
+</div>
+
+```
+
+</div>
+
+<script>
+// DOM Elements
+const launcher = document.getElementById("launcher");
+const chatbox = document.getElementById("chatbox");
+const closeBtn = document.getElementById("closeBtn");
+const messages = document.getElementById("messages");
+const input = document.getElementById("textInput");
+const sendBtn = document.getElementById("sendBtn");
+
+```
+// Configuration
+const N8N_URL = "<https://n8n-jamie.onrender.com/webhook/6eca552d-c5d4-4657-9ad6-34313a70121e/chat>";
+const TYPING_DELAY = 1000; // ms to show typing indicator
+
+// State
+let isSending = false;
+let isChatOpen = false;
+
+// Session management
+let sessionId = localStorage.getItem("jamie_session");
+if (!sessionId) {
+  sessionId = "sess-" + Math.random().toString(36).slice(2);
+  localStorage.setItem("jamie_session", sessionId);
+}
+
+// Show notification for new messages
+function showNewMessageNotification() {
+  if (!isChatOpen) {
+    launcher.classList.add('has-notification');
+    // Auto-remove the notification after 10 seconds
+    setTimeout(() => {
+      launcher.classList.remove('has-notification');
+    }, 10000);
+  }
+}
+
+// Clear notification when chat is opened
+function clearNotification() {
+  launcher.classList.remove('has-notification');
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Process markdown-style text
+function processMarkdown(text) {
+  if (!text) return '';
+  // Convert **text** to <strong>text</strong>
+  return escapeHtml(text)
+    .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
+    .replace(/\\n/g, '<br>');
+}
+
+// Toggle chat visibility
+function toggleChat() {
+  isChatOpen = !isChatOpen;
+
+  if (isChatOpen) {
+    clearNotification();
+    chatbox.style.display = "flex";
+    setTimeout(() => {
+      chatbox.classList.add("visible");
+      input.focus();
+
+      // Add welcome message if it's the first time
+      if (messages.children.length === 0) {
+        setTimeout(() => {
+          const welcomeMessage = `👋 Hi there! I'm Jamie, your dental assistant. I'm here to help you with:
+
+```
+
+- Booking appointments
+- Answering questions about our services
+- Explaining insurance and payment options
+- Connecting you with our team if needed
+
+What can I help you with today?`;
+addMsg(welcomeMessage, "bot");
+}, 300);
+}
+}, 10);
+} else {
+chatbox.classList.remove("visible");
+setTimeout(() => {
+chatbox.style.display = "none";
+}, 300);
+}
+}
+
+```
+// Add a new message to the chat
+function addMsg(text, from) {
+  const typing = document.getElementById("typingIndicator");
+  if (typing) typing.remove();
+
+  const msgDiv = document.createElement("div");
+  msgDiv.className = `msg ${from}`;
+
+  // Only process markdown for bot messages
+  if (from === 'bot') {
+    msgDiv.innerHTML = processMarkdown(text);
+  } else {
+    msgDiv.textContent = text;
+  }
+
+  messages.appendChild(msgDiv);
+  scrollToBottom();
+}
+
+// Show typing indicator
+function showTyping() {
+  // Remove any existing typing indicator
+  const existingTyping = document.getElementById("typingIndicator");
+  if (existingTyping) existingTyping.remove();
+
+  const typingDiv = document.createElement("div");
+  typingDiv.id = "typingIndicator";
+  typingDiv.className = "typing";
+  typingDiv.innerHTML = `
+    <div class="typing-dot"></div>
+    <div class="typing-dot"></div>
+    <div class="typing-dot"></div>
+  `;
+  messages.appendChild(typingDiv);
+  scrollToBottom();
+}
+
+// Hide typing indicator
+function hideTyping() {
+  const typing = document.getElementById("typingIndicator");
+  if (typing) typing.remove();
+}
+
+// Scroll to the bottom of the messages
+function scrollToBottom() {
+  messages.scrollTop = messages.scrollHeight;
+}
+
+// Send message to n8n
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text || isSending) return;
+
+  // Add user message to chat
+  addMsg(text, "user");
+  input.value = "";
+  isSending = true;
+  sendBtn.disabled = true;
+
+  // Show typing indicator after a short delay
+  const typingTimer = setTimeout(() => {
+    if (isSending) showTyping();
+  }, 300);
+
+  try {
+    const startTime = Date.now();
+
+    const response = await fetch(N8N_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chatInput: text,
+        sessionId: sessionId
+      })
+    });
+
+    // Check for HTTP error status
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // Ensure we show typing indicator for at least TYPING_DELAY ms
+    const elapsed = Date.now() - startTime;
+    if (elapsed < TYPING_DELAY) {
+      await new Promise(r => setTimeout(r, TYPING_DELAY - elapsed));
+    }
+
+    hideTyping();
+
+    const raw = await response.text();
+    let reply = raw;
+
+    try {
+      // Try to parse JSON response
+      const json = JSON.parse(raw);
+
+      // Extract reply from common response formats
+      reply = json.text ||
+              json.message ||
+              json.response?.text ||
+              json.output ||
+              JSON.stringify(json, null, 2);
+    } catch (e) {
+      // If not JSON, use raw text
+      reply = raw;
+    }
+
+    // Add bot's reply to chat
+    addMsg(String(reply).trim(), "bot");
+
+    // Show notification if chat is closed
+    if (!isChatOpen) {
+      showNewMessageNotification();
+    }
+
+  } catch (error) {
+    console.error("Error sending message:", error);
+    hideTyping();
+    addMsg("Sorry, I'm having trouble connecting to the server. Please try again later.", "bot");
+  } finally {
+    clearTimeout(typingTimer);
+    isSending = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+// Event Listeners
+launcher.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleChat();
+});
+
+closeBtn.addEventListener("click", toggleChat);
+sendBtn.addEventListener("click", sendMessage);
+
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Close chat when clicking outside
+document.addEventListener("click", (e) => {
+  if (isChatOpen &&
+      !chatbox.contains(e.target) &&
+      e.target !== launcher &&
+      !launcher.contains(e.target)) {
+    toggleChat();
+  }
+});
+
+// Initial focus on input when chat opens
+input.addEventListener("focus", () => {
+  if (isChatOpen) {
+    scrollToBottom();
+  }
+});
+
+```
+
+</script>
+</body>
+</html>
